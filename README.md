@@ -52,6 +52,11 @@ php artisan db:seed
 
 ## Run Locally
 
+Before running the app, build the frontend assets:
+```bash
+npm run build
+```
+
 Start the Laravel app:
 
 ```bash
