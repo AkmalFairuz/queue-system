@@ -7,11 +7,13 @@ use App\Models\Service;
 use App\Models\ServiceSchedule;
 use App\Models\Tenant;
 use App\Models\Ticket;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Throwable;
 
 class TenantController extends Controller
 {
@@ -39,7 +41,7 @@ class TenantController extends Controller
             ->with('status', 'Tenant berhasil dibuat.');
     }
 
-    public function destroy(Request $request, Tenant $tenant): RedirectResponse|\Illuminate\Http\JsonResponse
+    public function destroy(Request $request, Tenant $tenant): RedirectResponse|JsonResponse
     {
         abort_unless($request->user()->id === $tenant->owner_id, 403);
 
@@ -70,7 +72,7 @@ class TenantController extends Controller
             $tenant->delete();
 
             DB::commit();
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             DB::rollBack();
 
             throw $exception;

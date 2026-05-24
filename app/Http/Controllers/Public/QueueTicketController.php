@@ -12,6 +12,7 @@ use App\Services\TicketIssuer;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class QueueTicketController extends Controller
 {
@@ -146,7 +147,7 @@ class QueueTicketController extends Controller
         ]);
     }
 
-    private function serviceDateLabel(\Illuminate\Support\Carbon $serviceDate, \Illuminate\Support\Carbon $referenceTime): string
+    private function serviceDateLabel(Carbon $serviceDate, Carbon $referenceTime): string
     {
         if ($serviceDate->isSameDay($referenceTime)) {
             return sprintf('Hari ini · %s', $serviceDate->format('d/m/Y'));

@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Service;
 use App\Models\ServiceSchedule;
 use App\Models\Tenant;
 use App\Models\Ticket;
@@ -24,7 +25,7 @@ class TicketFactory extends Factory
             'tenant_id' => $tenant,
             'service_schedule_id' => ServiceSchedule::factory()->state(function () use ($tenant) {
                 return [
-                    'service_id' => \App\Models\Service::factory()->for($tenant),
+                    'service_id' => Service::factory()->for($tenant),
                 ];
             }),
             'counter_id' => null,

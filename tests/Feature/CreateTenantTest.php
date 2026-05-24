@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -21,7 +22,7 @@ class CreateTenantTest extends TestCase
             'tts_template' => 'Nomor antrian {queue}, silakan menuju {counter}',
         ]);
 
-        $tenant = \App\Models\Tenant::where('code', 'tenant-baru')->firstOrFail();
+        $tenant = Tenant::where('code', 'tenant-baru')->firstOrFail();
 
         $response->assertRedirect(route('admin.show', $tenant->id));
 
