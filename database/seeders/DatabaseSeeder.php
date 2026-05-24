@@ -17,112 +17,125 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $owner = User::factory()->create([
-            'name' => 'Direktur Rumah Sakit',
-            'email' => 'owner@example.com',
-            'password' => Hash::make('password'),
+        $owner = $this->upsertDemoUser('owner@example.com');
+        $admin = $this->upsertDemoUser('admin@example.com');
+        $staffA = $this->upsertDemoUser('staff1@example.com');
+        $staffB = $this->upsertDemoUser('staff2@example.com');
+
+        $tenant = $this->upsertDemoTenant($owner);
+
+        $tenant->users()->syncWithoutDetaching([
+            $admin->id => ['role' => 'admin'],
+            $staffA->id => ['role' => 'staff'],
+            $staffB->id => ['role' => 'staff'],
         ]);
 
-        $admin = User::factory()->create([
-            'name' => 'Admin Pendaftaran',
-            'email' => 'admin@example.com',
-            'password' => Hash::make('password'),
-        ]);
+        $this->resetDemoTenantData($tenant);
 
-        $staffA = User::factory()->create([
-            'name' => 'Petugas Loket 1',
-            'email' => 'staff1@example.com',
-            'password' => Hash::make('password'),
-        ]);
+        $services = $this->seedUniqueServices($tenant, 3);
 
-        $staffB = User::factory()->create([
-            'name' => 'Petugas Loket 2',
-            'email' => 'staff2@example.com',
-            'password' => Hash::make('password'),
-        ]);
-
-        $tenant = Tenant::factory()->create([
-            'name' => 'RS Harapan Sehat',
-            'code' => 'rs-harapan-sehat',
-            'owner_id' => $owner->id,
-            'tts_language' => 'id-ID',
-            'tts_template' => 'Nomor antrian {queue}, silakan menuju {counter}',
-        ]);
-
-        $tenant->users()->attach($admin->id, ['role' => 'admin']);
-        $tenant->users()->attach($staffA->id, ['role' => 'staff']);
-        $tenant->users()->attach($staffB->id, ['role' => 'staff']);
-
-        $serviceA = Service::factory()->create([
-            'tenant_id' => $tenant->id,
-            'name' => 'Poli Umum',
-            'ticket_prefix' => 'U',
-        ]);
-
-        $serviceB = Service::factory()->create([
-            'tenant_id' => $tenant->id,
-            'name' => 'Poli Gigi',
-            'ticket_prefix' => 'G',
-        ]);
-
-        $serviceC = Service::factory()->create([
-            'tenant_id' => $tenant->id,
-            'name' => 'Poli Anak',
-            'ticket_prefix' => 'A',
-        ]);
+        $serviceA = $services[0];
+        $serviceB = $services[1];
+        $serviceC = $services[2];
 
         $scheduleA = $this->seedWeekdaySchedules($serviceA, '08:00:00', '17:00:00', 40)->first();
         $scheduleB = $this->seedWeekdaySchedules($serviceB, '09:00:00', '17:00:00', 25)->first();
         $scheduleC = $this->seedWeekdaySchedules($serviceC, '08:30:00', '15:30:00', 20)->first();
 
-        $counterA = Counter::factory()->create([
-            'tenant_id' => $tenant->id,
-            'name' => 'Loket 1',
-        ]);
+        $counters = $this->seedUniqueCounters($tenant, 2);
 
-        $counterB = Counter::factory()->create([
-            'tenant_id' => $tenant->id,
-            'name' => 'Loket 2',
-        ]);
+        $counterA = $counters[0];
+        $counterB = $counters[1];
 
-        $counterA->staff()->attach($staffA->id);
-        $counterB->staff()->attach($staffB->id);
+        $counterA->staff()->syncWithoutDetaching([$staffA->id]);
+        $counterB->staff()->syncWithoutDetaching([$staffB->id]);
 
-        Ticket::create([
-            'user_id' => null,
-            'tenant_id' => $tenant->id,
-            'service_schedule_id' => $scheduleA->id,
-            'status' => TicketStatus::Waiting,
-            'sequence' => 1,
-            'service_date' => today()->toDateString(),
+        $this->seedWaitingTickets($tenant->id, [
+            [$scheduleA, 1],
+            [$scheduleA, 2],
+            [$scheduleB, 1],
+            [$scheduleC, 1],
         ]);
+    }
 
-        Ticket::create([
-            'user_id' => null,
-            'tenant_id' => $tenant->id,
-            'service_schedule_id' => $scheduleA->id,
-            'status' => TicketStatus::Waiting,
-            'sequence' => 2,
-            'service_date' => today()->toDateString(),
-        ]);
+    private function upsertDemoUser(string $email): User
+    {
+        $attributes = User::factory()->make([
+            'email' => $email,
+            'password' => Hash::make('password'),
+        ])->getAttributes();
 
-        Ticket::create([
-            'user_id' => null,
-            'tenant_id' => $tenant->id,
-            'service_schedule_id' => $scheduleB->id,
-            'status' => TicketStatus::Waiting,
-            'sequence' => 1,
-            'service_date' => today()->toDateString(),
-        ]);
+        return User::query()->updateOrCreate([
+            'email' => $email,
+        ], $attributes);
+    }
 
-        Ticket::create([
-            'user_id' => null,
-            'tenant_id' => $tenant->id,
-            'service_schedule_id' => $scheduleC->id,
-            'status' => TicketStatus::Waiting,
-            'sequence' => 1,
-            'service_date' => today()->toDateString(),
-        ]);
+    private function upsertDemoTenant(User $owner): Tenant
+    {
+        $attributes = Tenant::factory()->make([
+            'code' => 'rs-harapan-sehat',
+            'owner_id' => $owner->id,
+        ])->getAttributes();
+
+        return Tenant::query()->updateOrCreate([
+            'code' => 'rs-harapan-sehat',
+        ], $attributes);
+    }
+
+    private function resetDemoTenantData(Tenant $tenant): void
+    {
+        $tenant->tickets()->delete();
+
+        $tenant->counters->each(function (Counter $counter): void {
+            $counter->staff()->detach();
+        });
+        $tenant->counters()->delete();
+
+        $tenant->services()->delete();
+    }
+
+    /**
+     * @return Collection<int, Service>
+     */
+    private function seedUniqueServices(Tenant $tenant, int $count): Collection
+    {
+        $services = collect();
+        $usedPrefixes = [];
+
+        while ($services->count() < $count) {
+            $service = Service::factory()->make(['tenant_id' => $tenant->id]);
+
+            if (in_array($service->ticket_prefix, $usedPrefixes, true)) {
+                continue;
+            }
+
+            $services->push(Service::query()->create($service->getAttributes()));
+            $usedPrefixes[] = $service->ticket_prefix;
+        }
+
+        return $services;
+    }
+
+    /**
+     * @return Collection<int, Counter>
+     */
+    private function seedUniqueCounters(Tenant $tenant, int $count): Collection
+    {
+        $counters = collect();
+        $usedNames = [];
+
+        while ($counters->count() < $count) {
+            $counter = Counter::factory()->make(['tenant_id' => $tenant->id]);
+
+            if (in_array($counter->name, $usedNames, true)) {
+                continue;
+            }
+
+            $counters->push(Counter::query()->create($counter->getAttributes()));
+            $usedNames[] = $counter->name;
+        }
+
+        return $counters;
     }
 
     private function seedWeekdaySchedules(
@@ -132,13 +145,31 @@ class DatabaseSeeder extends Seeder
         int $maxTickets,
     ): Collection {
         return collect(range(0, 4))->map(function (int $day) use ($service, $opensAt, $closesAt, $maxTickets) {
-            return ServiceSchedule::factory()->create([
+            return ServiceSchedule::query()->updateOrCreate([
                 'service_id' => $service->id,
                 'day' => $day,
                 'opens_at' => $opensAt,
+            ], [
                 'closes_at' => $closesAt,
                 'max_tickets' => $maxTickets,
             ]);
         });
+    }
+
+    /**
+     * @param  array<int, array{0: ServiceSchedule, 1: int}>  $tickets
+     */
+    private function seedWaitingTickets(int $tenantId, array $tickets): void
+    {
+        foreach ($tickets as [$schedule, $sequence]) {
+            Ticket::query()->create([
+                'user_id' => null,
+                'tenant_id' => $tenantId,
+                'service_schedule_id' => $schedule->id,
+                'status' => TicketStatus::Waiting,
+                'sequence' => $sequence,
+                'service_date' => today()->toDateString(),
+            ]);
+        }
     }
 }
