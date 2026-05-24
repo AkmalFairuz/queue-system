@@ -8,7 +8,7 @@
 @source '../**/*.js';
 
 @theme {
-    --font-sans: 'DejaVu Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-sans: Verdana, 'DejaVu Sans', ui-sans-serif, system-ui, sans-serif;
     --color-brand: var(--color-amber-600);
     --color-brand-dark: var(--color-amber-700);
     --color-surface: #fffdf7;
