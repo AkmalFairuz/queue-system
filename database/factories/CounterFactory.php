@@ -21,10 +21,10 @@ class CounterFactory extends Factory
         return [
             'tenant_id' => Tenant::factory(),
             'name' => fake()->randomElement([
-                'Loket Pendaftaran 1',
-                'Loket Pendaftaran 2',
-                'Loket BPJS',
-                'Loket Rawat Jalan',
+                'Loket 1',
+                'Loket 2',
+                'Loket 3',
+                'Loket 4',
             ]),
             'is_active' => true,
         ];
