@@ -12,7 +12,7 @@
         <nav class="flex flex-wrap items-center gap-2 text-sm text-stone-500">
             @foreach ($breadcrumbs as $index => $breadcrumb)
                 @if ($index > 0)
-                    <span>/</span>
+                    <i class="fa-solid fa-chevron-right text-xs text-stone-400" aria-hidden="true"></i>
                 @endif
 
                 @if (! empty($breadcrumb['href']))

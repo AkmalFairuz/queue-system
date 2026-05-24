@@ -2,9 +2,9 @@
     <main class="page-shell space-y-6">
         <nav class="flex flex-wrap items-center gap-2 text-sm text-stone-500">
             <a href="{{ route('home') }}" class="transition hover:text-stone-900">Beranda</a>
-            <span>/</span>
+            <i class="fa-solid fa-chevron-right text-xs text-stone-400" aria-hidden="true"></i>
             <span class="font-medium text-stone-900">{{ $tenant->name }}</span>
-            <span>/</span>
+            <i class="fa-solid fa-chevron-right text-xs text-stone-400" aria-hidden="true"></i>
             <span class="font-medium text-stone-900">Ambil Antrian</span>
         </nav>
 

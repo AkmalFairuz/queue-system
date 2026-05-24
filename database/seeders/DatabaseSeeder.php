@@ -42,13 +42,13 @@ class DatabaseSeeder extends Seeder
         $scheduleB = $this->seedWeekdaySchedules($serviceB, '09:00:00', '17:00:00', 25)->first();
         $scheduleC = $this->seedWeekdaySchedules($serviceC, '08:30:00', '15:30:00', 20)->first();
 
-        $counters = $this->seedUniqueCounters($tenant, 2);
+        $counters = $this->seedCountersForServices($tenant, $services);
 
-        $counterA = $counters[0];
-        $counterB = $counters[1];
-
-        $counterA->staff()->syncWithoutDetaching([$staffA->id]);
-        $counterB->staff()->syncWithoutDetaching([$staffB->id]);
+        $counters->each(function (Counter $counter, int $index) use ($staffA, $staffB): void {
+            $counter->staff()->syncWithoutDetaching([
+                $index % 2 === 0 ? $staffA->id : $staffB->id,
+            ]);
+        });
 
         $this->seedWaitingTickets($tenant->id, [
             [$scheduleA, 1],
@@ -117,25 +117,21 @@ class DatabaseSeeder extends Seeder
     }
 
     /**
+     * @param  Collection<int, Service>  $services
      * @return Collection<int, Counter>
      */
-    private function seedUniqueCounters(Tenant $tenant, int $count): Collection
+    private function seedCountersForServices(Tenant $tenant, Collection $services): Collection
     {
-        $counters = collect();
-        $usedNames = [];
-
-        while ($counters->count() < $count) {
-            $counter = Counter::factory()->make(['tenant_id' => $tenant->id]);
-
-            if (in_array($counter->name, $usedNames, true)) {
-                continue;
-            }
-
-            $counters->push(Counter::query()->create($counter->getAttributes()));
-            $usedNames[] = $counter->name;
-        }
-
-        return $counters;
+        return $services->flatMap(function (Service $service) use ($tenant) {
+            return collect([1, 2])->map(function (int $counterNumber) use ($service, $tenant) {
+                return Counter::query()->create(
+                    Counter::factory()->make([
+                        'tenant_id' => $tenant->id,
+                        'name' => sprintf('%s - Loket %d', $service->name, $counterNumber),
+                    ])->getAttributes(),
+                );
+            });
+        })->values();
     }
 
     private function seedWeekdaySchedules(
