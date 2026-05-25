@@ -8,6 +8,7 @@ use App\Models\Service;
 use App\Models\Tenant;
 use App\Models\Ticket;
 use App\Support\TicketStatus;
+use Illuminate\Broadcasting\BroadcastException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -53,7 +54,7 @@ class CounterWorkflow
             return $nextTicket->fresh(['serviceSchedule.service', 'counter']);
         });
 
-        event(new QueueDisplayUpdated($tenant->id, 'ticket-called'));
+        $this->broadcastUpdate($tenant->id, 'ticket-called');
 
         return $ticket;
     }
@@ -80,7 +81,7 @@ class CounterWorkflow
             return $ticket->fresh(['serviceSchedule.service', 'counter']);
         });
 
-        event(new QueueDisplayUpdated($tenant->id, 'ticket-serving'));
+        $this->broadcastUpdate($tenant->id, 'ticket-serving');
 
         return $ticket;
     }
@@ -110,7 +111,7 @@ class CounterWorkflow
             ]);
         }
 
-        event(new QueueDisplayUpdated($tenant->id, 'ticket-recalled', $counter->id, $ticket->id));
+        $this->broadcastUpdate($tenant->id, 'ticket-recalled', $counter->id, $ticket->id);
 
         return $ticket;
     }
@@ -139,7 +140,7 @@ class CounterWorkflow
             return $ticket->fresh(['serviceSchedule.service', 'counter']);
         });
 
-        event(new QueueDisplayUpdated($tenant->id, $reason));
+        $this->broadcastUpdate($tenant->id, $reason);
 
         return $ticket;
     }
@@ -160,6 +161,19 @@ class CounterWorkflow
             throw ValidationException::withMessages([
                 'tenant_id' => 'Counter atau layanan tidak cocok dengan tenant.',
             ]);
+        }
+    }
+
+    private function broadcastUpdate(
+        int $tenantId,
+        string $reason,
+        ?int $counterId = null,
+        ?int $ticketId = null,
+    ): void {
+        try {
+            event(new QueueDisplayUpdated($tenantId, $reason, $counterId, $ticketId));
+        } catch (BroadcastException $exception) {
+            report($exception);
         }
     }
 }

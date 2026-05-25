@@ -9,6 +9,7 @@ use App\Models\Tenant;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Support\TicketStatus;
+use Illuminate\Broadcasting\BroadcastException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -109,8 +110,21 @@ class TicketIssuer
 
         $ticket->load('serviceSchedule.service');
 
-        event(new QueueDisplayUpdated($tenant->id, 'ticket-issued'));
+        $this->broadcastUpdate($tenant->id, 'ticket-issued');
 
         return $ticket;
+    }
+
+    private function broadcastUpdate(
+        int $tenantId,
+        string $reason,
+        ?int $counterId = null,
+        ?int $ticketId = null,
+    ): void {
+        try {
+            event(new QueueDisplayUpdated($tenantId, $reason, $counterId, $ticketId));
+        } catch (BroadcastException $exception) {
+            report($exception);
+        }
     }
 }
