@@ -122,12 +122,14 @@ class DatabaseSeeder extends Seeder
      */
     private function seedCountersForServices(Tenant $tenant, Collection $services): Collection
     {
-        return $services->flatMap(function (Service $service) use ($tenant) {
-            return collect([1, 2])->map(function (int $counterNumber) use ($service, $tenant) {
+        $counterNumber = 1;
+
+        return $services->flatMap(function (Service $service) use ($tenant, &$counterNumber) {
+            return collect([1, 2])->map(function () use ($tenant, &$counterNumber) {
                 return Counter::query()->create(
                     Counter::factory()->make([
                         'tenant_id' => $tenant->id,
-                        'name' => sprintf('%s - Loket %d', $service->name, $counterNumber),
+                        'name' => sprintf('Loket %d', $counterNumber++),
                     ])->getAttributes(),
                 );
             });
